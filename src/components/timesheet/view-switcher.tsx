@@ -18,7 +18,7 @@ const views: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
 
 export function ViewSwitcher({ currentView, onViewChange }: ViewSwitcherProps) {
     return (
-        <div className="flex items-center gap-1 p-1 bg-slate-800/50 rounded-lg border border-slate-700">
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
             {views.map((view) => (
                 <Button
                     key={view.id}
@@ -28,8 +28,8 @@ export function ViewSwitcher({ currentView, onViewChange }: ViewSwitcherProps) {
                     className={cn(
                         "gap-2 transition-all",
                         currentView === view.id
-                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                            ? "bg-white text-gray-900 shadow-sm hover:bg-white"
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                     )}
                 >
                     {view.icon}

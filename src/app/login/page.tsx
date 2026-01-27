@@ -14,6 +14,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { LoginType } from "@/types";
+import { Clock, Users, Shield } from "lucide-react";
 
 function LoginForm() {
     const router = useRouter();
@@ -24,11 +25,12 @@ function LoginForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<LoginType>("employee");
     const [loginError, setLoginError] = useState<string | null>(
         error ? "Invalid credentials" : null
     );
 
-    const handleLogin = async (loginType: LoginType) => {
+    const handleLogin = async () => {
         setIsLoading(true);
         setLoginError(null);
 
@@ -36,7 +38,7 @@ function LoginForm() {
             const result = await signIn("credentials", {
                 email,
                 password,
-                loginType,
+                loginType: activeTab,
                 redirect: false,
             });
 
@@ -51,7 +53,7 @@ function LoginForm() {
             }
 
             // Redirect based on login type
-            if (loginType === "admin") {
+            if (activeTab === "admin") {
                 router.push(callbackUrl || "/admin/dashboard");
             } else {
                 router.push(callbackUrl || "/timesheet");
@@ -63,130 +65,137 @@ function LoginForm() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative">
-            {/* Admin login - small corner button */}
-            <Button
-                variant="ghost"
-                size="sm"
-                className="absolute top-4 right-4 text-slate-400 hover:text-white hover:bg-slate-700/50"
-                onClick={() => handleLogin("admin")}
-                disabled={isLoading || !email || !password}
-            >
-                Admin Login
-            </Button>
-
-            <Card className="w-full max-w-md bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                <CardHeader className="space-y-1 text-center">
-                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                        <svg
-                            className="h-6 w-6 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                        </svg>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
+                {/* Logo/Header */}
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-600 mb-4">
+                        <Clock className="h-7 w-7 text-white" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white">
-                        Timesheet
-                    </CardTitle>
-                    <CardDescription className="text-slate-400">
-                        Enter your credentials to access your timesheet
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {loginError && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
-                            {loginError}
+                    <h1 className="text-2xl font-semibold text-gray-900">Timesheet</h1>
+                    <p className="text-gray-500 mt-1">Track your work hours</p>
+                </div>
+
+                <Card className="border-gray-200 shadow-sm">
+                    <CardHeader className="pb-4">
+                        {/* Tab Selector */}
+                        <div className="flex rounded-lg bg-gray-100 p-1">
+                            <button
+                                onClick={() => setActiveTab("employee")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${activeTab === "employee"
+                                        ? "bg-white text-gray-900 shadow-sm"
+                                        : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                <Users className="h-4 w-4" />
+                                Employee
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("admin")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${activeTab === "admin"
+                                        ? "bg-white text-gray-900 shadow-sm"
+                                        : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                <Shield className="h-4 w-4" />
+                                Admin
+                            </button>
                         </div>
-                    )}
-
-                    <div className="space-y-2">
-                        <Label htmlFor="email" className="text-slate-300">
-                            Email
-                        </Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="you@company.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
-                            disabled={isLoading}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="password" className="text-slate-300">
-                            Password
-                        </Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
-                            disabled={isLoading}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && email && password) {
-                                    handleLogin("employee");
-                                }
-                            }}
-                        />
-                    </div>
-
-                    <Button
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-5 text-lg"
-                        onClick={() => handleLogin("employee")}
-                        disabled={isLoading || !email || !password}
-                    >
-                        {isLoading ? (
-                            <div className="flex items-center gap-2">
-                                <svg
-                                    className="animate-spin h-5 w-5"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                >
-                                    <circle
-                                        className="opacity-25"
-                                        cx="12"
-                                        cy="12"
-                                        r="10"
-                                        stroke="currentColor"
-                                        strokeWidth="4"
-                                    />
-                                    <path
-                                        className="opacity-75"
-                                        fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    />
-                                </svg>
-                                Signing in...
+                        <CardDescription className="text-center mt-4 text-gray-500">
+                            {activeTab === "employee"
+                                ? "Access your timesheet and log hours"
+                                : "Access admin dashboard and reports"}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {loginError && (
+                            <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm text-center">
+                                {loginError}
                             </div>
-                        ) : (
-                            "Login as Employee"
                         )}
-                    </Button>
 
-                    <p className="text-center text-sm text-slate-500 mt-4">
-                        Use the top-right button for admin access
-                    </p>
-                </CardContent>
-            </Card>
+                        <div className="space-y-2">
+                            <Label htmlFor="email" className="text-gray-700">
+                                Email
+                            </Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="you@company.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                                disabled={isLoading}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="password" className="text-gray-700">
+                                Password
+                            </Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                                disabled={isLoading}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && email && password) {
+                                        handleLogin();
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        <Button
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-5"
+                            onClick={handleLogin}
+                            disabled={isLoading || !email || !password}
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                    <svg
+                                        className="animate-spin h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        />
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        />
+                                    </svg>
+                                    Signing in...
+                                </div>
+                            ) : (
+                                `Sign in as ${activeTab === "admin" ? "Admin" : "Employee"}`
+                            )}
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <p className="text-center text-sm text-gray-400 mt-6">
+                    © 2024 Timesheet System
+                </p>
+            </div>
         </div>
     );
 }
 
 function LoginFallback() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
     );
 }

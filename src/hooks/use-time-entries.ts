@@ -35,7 +35,7 @@ async function upsertTimeEntry(data: TimeEntryInput): Promise<TimeEntryWithCharg
     return response.json();
 }
 
-async function deleteTimeEntry(id: string): Promise<void> {
+async function deleteTimeEntry({ id }: { id: string }): Promise<void> {
     const response = await fetch("/api/time-entries", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },

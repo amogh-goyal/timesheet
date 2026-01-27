@@ -11,12 +11,14 @@ import {
     addMonths,
     subMonths,
     getDay,
+    isWeekend,
 } from "date-fns";
 import { useTimeEntries } from "@/hooks/use-time-entries";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DateStatus } from "@/types";
+
+type DateStatus = "complete" | "partial" | "empty";
 
 interface MonthCalendarProps {
     currentMonth: Date;
@@ -64,19 +66,20 @@ export function MonthCalendar({
         const dateKey = format(date, "yyyy-MM-dd");
         const hours = hoursMap.get(dateKey) || 0;
 
-        if (hours >= 7) return "complete";
+        if (hours === 7) return "complete";
         if (hours > 0) return "partial";
         return "empty";
     };
 
-    const getStatusColor = (status: DateStatus) => {
+    const getStatusColor = (status: DateStatus, isWeekendDay: boolean) => {
+        if (isWeekendDay) return "bg-gray-200";
         switch (status) {
             case "complete":
-                return "bg-emerald-500";
+                return "bg-green-500";
             case "partial":
-                return "bg-amber-500";
+                return "bg-orange-400";
             case "empty":
-                return "bg-slate-600";
+                return "bg-gray-300";
         }
     };
 
@@ -95,33 +98,33 @@ export function MonthCalendar({
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-96">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
         );
     }
 
     return (
-        <div className="bg-slate-800/30 rounded-xl border border-slate-700 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-6">
                 <Button
                     variant="outline"
                     size="icon"
                     onClick={handlePreviousMonth}
-                    className="bg-slate-700/50 border-slate-600 hover:bg-slate-700 text-slate-300"
+                    className="border-gray-200 hover:bg-gray-50 text-gray-600"
                 >
                     <ChevronLeft className="h-4 w-4" />
                 </Button>
 
                 <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-semibold text-white">
+                    <h2 className="text-xl font-semibold text-gray-900">
                         {format(currentMonth, "MMMM yyyy")}
                     </h2>
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={handleCurrentMonth}
-                        className="bg-slate-700/50 border-slate-600 hover:bg-slate-700 text-slate-300"
+                        className="border-gray-200 hover:bg-gray-50 text-gray-600"
                     >
                         Today
                     </Button>
@@ -131,7 +134,7 @@ export function MonthCalendar({
                     variant="outline"
                     size="icon"
                     onClick={handleNextMonth}
-                    className="bg-slate-700/50 border-slate-600 hover:bg-slate-700 text-slate-300"
+                    className="border-gray-200 hover:bg-gray-50 text-gray-600"
                 >
                     <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -140,25 +143,28 @@ export function MonthCalendar({
             {/* Legend */}
             <div className="flex items-center justify-center gap-6 mb-6">
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                    <span className="text-sm text-slate-400">Complete (7+ hrs)</span>
+                    <div className="h-3 w-3 rounded-full bg-green-500" />
+                    <span className="text-sm text-gray-600">Complete (7 hrs)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-amber-500" />
-                    <span className="text-sm text-slate-400">Partial (1-6 hrs)</span>
+                    <div className="h-3 w-3 rounded-full bg-orange-400" />
+                    <span className="text-sm text-gray-600">Partial (1-6 hrs)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-slate-600" />
-                    <span className="text-sm text-slate-400">Empty</span>
+                    <div className="h-3 w-3 rounded-full bg-gray-300" />
+                    <span className="text-sm text-gray-600">Empty (0 hrs)</span>
                 </div>
             </div>
 
             {/* Weekday headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-                {WEEKDAYS.map((day) => (
+                {WEEKDAYS.map((day, index) => (
                     <div
                         key={day}
-                        className="text-center text-sm font-medium text-slate-500 py-2"
+                        className={cn(
+                            "text-center text-sm font-medium py-2",
+                            index === 0 || index === 6 ? "text-gray-400" : "text-gray-600"
+                        )}
                     >
                         {day}
                     </div>
@@ -172,25 +178,33 @@ export function MonthCalendar({
                         return <div key={`empty-${index}`} className="aspect-square" />;
                     }
 
+                    const isWeekendDay = isWeekend(day);
                     const status = getDateStatus(day);
                     const hours = hoursMap.get(format(day, "yyyy-MM-dd")) || 0;
 
                     return (
                         <button
                             key={day.toISOString()}
-                            onClick={() => onDateClick(day)}
+                            onClick={() => !isWeekendDay && onDateClick(day)}
+                            disabled={isWeekendDay}
                             className={cn(
                                 "aspect-square p-2 rounded-lg transition-all",
                                 "flex flex-col items-center justify-center gap-1",
-                                "hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+                                isWeekendDay
+                                    ? "bg-gray-50 cursor-not-allowed"
+                                    : "hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500",
                                 !isSameMonth(day, currentMonth) && "opacity-30",
-                                isToday(day) && "ring-2 ring-blue-500"
+                                isToday(day) && !isWeekendDay && "ring-2 ring-blue-500"
                             )}
                         >
                             <span
                                 className={cn(
                                     "text-sm font-medium",
-                                    isToday(day) ? "text-blue-400" : "text-slate-300"
+                                    isWeekendDay
+                                        ? "text-gray-400"
+                                        : isToday(day)
+                                            ? "text-blue-600"
+                                            : "text-gray-700"
                                 )}
                             >
                                 {format(day, "d")}
@@ -198,13 +212,12 @@ export function MonthCalendar({
                             <div
                                 className={cn(
                                     "h-3 w-3 rounded-full transition-all",
-                                    getStatusColor(status),
-                                    hours > 0 && "shadow-lg"
+                                    getStatusColor(status, isWeekendDay)
                                 )}
-                                title={`${hours} hours`}
+                                title={isWeekendDay ? "Weekend" : `${hours} hours`}
                             />
-                            {hours > 0 && (
-                                <span className="text-xs text-slate-500">{hours}h</span>
+                            {!isWeekendDay && hours > 0 && (
+                                <span className="text-xs text-gray-500">{hours}h</span>
                             )}
                         </button>
                     );

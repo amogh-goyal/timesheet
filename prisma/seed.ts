@@ -1,133 +1,149 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { parse } from "csv-parse/sync";
+import * as fs from "fs";
+import * as path from "path";
 
 const prisma = new PrismaClient();
 
+interface EmployeeRow {
+    email: string;
+    name: string;
+    password: string;
+}
+
+interface AdminRow {
+    email: string;
+    name: string;
+    password: string;
+}
+
+interface ChargeCodeRow {
+    code: string;
+    description: string;
+    isActive: string;
+}
+
+function readCSV<T>(filename: string): T[] {
+    const filePath = path.join(__dirname, "seed-data", filename);
+
+    if (!fs.existsSync(filePath)) {
+        console.log(`⚠️ Warning: ${filename} not found, skipping...`);
+        return [];
+    }
+
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    return parse(fileContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+    }) as T[];
+}
+
 async function main() {
     console.log("🌱 Starting seed...");
+    console.log("");
+
+    // Read CSV files
+    const employees = readCSV<EmployeeRow>("employees.csv");
+    const admins = readCSV<AdminRow>("admins.csv");
+    const chargeCodes = readCSV<ChargeCodeRow>("charge-codes.csv");
 
     // Create charge codes
-    const chargeCodes = [
-        { code: "PROJ-001", description: "Client Project Alpha - Development" },
-        { code: "PROJ-002", description: "Client Project Beta - Design" },
-        { code: "PROJ-003", description: "Internal Tools Development" },
-        { code: "ADMIN-001", description: "Administrative Tasks" },
-        { code: "TRAIN-001", description: "Training & Learning" },
-        { code: "MTG-001", description: "Meetings & Collaboration" },
-        { code: "SUPP-001", description: "Customer Support" },
-        { code: "RND-001", description: "Research & Development" },
-    ];
-
     console.log("📋 Creating charge codes...");
     for (const code of chargeCodes) {
         await prisma.chargeCode.upsert({
             where: { code: code.code },
-            update: {},
-            create: code,
+            update: {
+                description: code.description,
+                isActive: code.isActive.toLowerCase() === "true",
+            },
+            create: {
+                code: code.code,
+                description: code.description,
+                isActive: code.isActive.toLowerCase() === "true",
+            },
         });
     }
-    console.log(`✅ Created ${chargeCodes.length} charge codes`);
+    console.log(`✅ Created/updated ${chargeCodes.length} charge codes`);
+    console.log("");
 
-    // Create test users
-    const passwordHash = await hash("password123", 12);
+    // Track all admin emails for dual-role assignment
+    const adminEmails = new Set(admins.map(a => a.email.toLowerCase()));
 
-    console.log("👤 Creating test users...");
+    // Create employees
+    console.log("👤 Creating employees...");
+    for (const employee of employees) {
+        const passwordHash = await hash(employee.password, 12);
+        const isAlsoAdmin = adminEmails.has(employee.email.toLowerCase());
 
-    // Employee only
-    const employee = await prisma.user.upsert({
-        where: { email: "employee@example.com" },
-        update: {},
-        create: {
-            email: "employee@example.com",
-            name: "John Employee",
-            passwordHash,
-            roles: ["EMPLOYEE"],
-        },
-    });
-    console.log(`✅ Created employee: ${employee.email}`);
+        const roles: Role[] = isAlsoAdmin ? [Role.EMPLOYEE, Role.ADMIN] : [Role.EMPLOYEE];
 
-    // Admin only
-    const admin = await prisma.user.upsert({
-        where: { email: "admin@example.com" },
-        update: {},
-        create: {
-            email: "admin@example.com",
-            name: "Jane Admin",
-            passwordHash,
-            roles: ["ADMIN"],
-        },
-    });
-    console.log(`✅ Created admin: ${admin.email}`);
-
-    // Both Employee and Admin
-    const superUser = await prisma.user.upsert({
-        where: { email: "super@example.com" },
-        update: {},
-        create: {
-            email: "super@example.com",
-            name: "Super User",
-            passwordHash,
-            roles: ["EMPLOYEE", "ADMIN"],
-        },
-    });
-    console.log(`✅ Created super user: ${superUser.email}`);
-
-    // Create some sample time entries for the employee
-    console.log("⏱️ Creating sample time entries...");
-    const today = new Date();
-    const codes = await prisma.chargeCode.findMany({ take: 3 });
-
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-
-        // Skip weekends
-        const dayOfWeek = date.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-
-        await prisma.timeEntry.upsert({
-            where: {
-                userId_chargeCodeId_date: {
-                    userId: employee.id,
-                    chargeCodeId: codes[0].id,
-                    date,
-                },
+        await prisma.user.upsert({
+            where: { email: employee.email },
+            update: {
+                name: employee.name,
+                passwordHash,
+                roles,
             },
-            update: {},
             create: {
-                userId: employee.id,
-                chargeCodeId: codes[0].id,
-                date,
-                hours: Math.floor(Math.random() * 4) + 4, // 4-7 hours
+                email: employee.email,
+                name: employee.name,
+                passwordHash,
+                roles,
             },
         });
+        console.log(`   ✅ ${employee.email} (${roles.join(", ")})`);
+    }
+    console.log("");
 
-        if (Math.random() > 0.5) {
-            await prisma.timeEntry.upsert({
-                where: {
-                    userId_chargeCodeId_date: {
-                        userId: employee.id,
-                        chargeCodeId: codes[1].id,
-                        date,
-                    },
-                },
-                update: {},
-                create: {
-                    userId: employee.id,
-                    chargeCodeId: codes[1].id,
-                    date,
-                    hours: Math.floor(Math.random() * 3) + 1, // 1-3 hours
-                },
-            });
+    // Create admins (who are not already employees)
+    console.log("🔐 Creating admins...");
+    const employeeEmails = new Set(employees.map(e => e.email.toLowerCase()));
+
+    for (const admin of admins) {
+        const passwordHash = await hash(admin.password, 12);
+        const isAlsoEmployee = employeeEmails.has(admin.email.toLowerCase());
+
+        if (isAlsoEmployee) {
+            // Already created as employee with dual role
+            console.log(`   ⏭️ ${admin.email} (already created as employee with ADMIN role)`);
+            continue;
+        }
+
+        await prisma.user.upsert({
+            where: { email: admin.email },
+            update: {
+                name: admin.name,
+                passwordHash,
+                roles: [Role.ADMIN],
+            },
+            create: {
+                email: admin.email,
+                name: admin.name,
+                passwordHash,
+                roles: [Role.ADMIN],
+            },
+        });
+        console.log(`   ✅ ${admin.email} (ADMIN)`);
+    }
+    console.log("");
+
+    console.log("🎉 Seed completed successfully!");
+    console.log("");
+    console.log("📝 Available credentials:");
+    console.log("   Employees:");
+    for (const emp of employees) {
+        const isAdmin = adminEmails.has(emp.email.toLowerCase());
+        console.log(`   - ${emp.email} / ${emp.password}${isAdmin ? " (also ADMIN)" : ""}`);
+    }
+    console.log("");
+    console.log("   Admins (admin-only):");
+    for (const admin of admins) {
+        if (!employeeEmails.has(admin.email.toLowerCase())) {
+            console.log(`   - ${admin.email} / ${admin.password}`);
         }
     }
-    console.log("✅ Created sample time entries");
-
-    console.log("\n🎉 Seed completed successfully!");
-    console.log("\n📝 Test credentials:");
-    console.log("   Employee: employee@example.com / password123");
-    console.log("   Admin: admin@example.com / password123");
-    console.log("   Super User: super@example.com / password123");
 }
 
 main()

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { startOfWeek, format } from "date-fns";
+import { useState, useMemo } from "react";
+import { format } from "date-fns";
 import { ViewSwitcher } from "@/components/timesheet/view-switcher";
-import { PeriodPicker } from "@/components/timesheet/period-picker";
+import { PeriodPicker, getCurrentPeriod } from "@/components/timesheet/period-picker";
 import { TimesheetGrid } from "@/components/timesheet/timesheet-grid";
 import { MonthCalendar } from "@/components/timesheet/month-calendar";
 import { DayEntries } from "@/components/timesheet/day-entries";
@@ -13,15 +13,21 @@ export default function TimesheetPage() {
     // View state
     const [currentView, setCurrentView] = useState<ViewMode>("two-week");
 
-    // Date states for different views
-    const [twoWeekStart, setTwoWeekStart] = useState(() =>
-        startOfWeek(new Date(), { weekStartsOn: 1 })
-    );
+    // Initialize with current semi-monthly period
+    const initialPeriod = useMemo(() => getCurrentPeriod(new Date()), []);
+    const [periodStart, setPeriodStart] = useState(initialPeriod.start);
+    const [periodEnd, setPeriodEnd] = useState(initialPeriod.end);
+
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDay, setSelectedDay] = useState(new Date());
 
     const handleViewChange = (view: ViewMode) => {
         setCurrentView(view);
+    };
+
+    const handlePeriodChange = (start: Date, end: Date) => {
+        setPeriodStart(start);
+        setPeriodEnd(end);
     };
 
     const handleDateClick = (date: Date) => {
@@ -33,20 +39,21 @@ export default function TimesheetPage() {
         setSelectedDay(date);
     };
 
+    // Period label for display
+    const periodLabel = periodStart.getDate() === 1
+        ? `${format(periodStart, "MMM")} 1-15, ${format(periodStart, "yyyy")}`
+        : `${format(periodStart, "MMM")} 16-${format(periodEnd, "d")}, ${format(periodEnd, "yyyy")}`;
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Timesheet</h1>
-                        <p className="text-slate-400 mt-1">
+                        <h1 className="text-2xl font-semibold text-gray-900">Timesheet</h1>
+                        <p className="text-gray-500 mt-1">
                             {currentView === "month" && format(currentMonth, "MMMM yyyy")}
-                            {currentView === "two-week" &&
-                                `${format(twoWeekStart, "MMM d")} - ${format(
-                                    new Date(twoWeekStart.getTime() + 13 * 24 * 60 * 60 * 1000),
-                                    "MMM d, yyyy"
-                                )}`}
+                            {currentView === "two-week" && periodLabel}
                             {currentView === "day" && format(selectedDay, "EEEE, MMMM d, yyyy")}
                         </p>
                     </div>
@@ -54,8 +61,8 @@ export default function TimesheetPage() {
                     <div className="flex items-center gap-4">
                         {currentView === "two-week" && (
                             <PeriodPicker
-                                startDate={twoWeekStart}
-                                onPeriodChange={setTwoWeekStart}
+                                startDate={periodStart}
+                                onPeriodChange={handlePeriodChange}
                             />
                         )}
                         <ViewSwitcher
@@ -75,7 +82,7 @@ export default function TimesheetPage() {
                 )}
 
                 {currentView === "two-week" && (
-                    <TimesheetGrid startDate={twoWeekStart} />
+                    <TimesheetGrid startDate={periodStart} endDate={periodEnd} />
                 )}
 
                 {currentView === "day" && (

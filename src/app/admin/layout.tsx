@@ -11,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, Users, LogOut, Clock, Settings } from "lucide-react";
+import { LayoutDashboard, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -21,11 +21,6 @@ const navItems = [
         href: "/admin/dashboard",
         label: "Dashboard",
         icon: LayoutDashboard,
-    },
-    {
-        href: "/admin/employees",
-        label: "Employees",
-        icon: Users,
     },
 ];
 
@@ -53,15 +48,15 @@ export default function AdminLayout({
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="min-h-screen bg-gray-50">
             {/* Sidebar */}
-            <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900/80 backdrop-blur-lg border-r border-slate-700/50">
+            <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-white border-r border-gray-200">
                 {/* Logo */}
-                <div className="flex items-center gap-2 px-6 py-5 border-b border-slate-700/50">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                <div className="flex items-center gap-2 px-6 py-5 border-b border-gray-100">
+                    <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center">
                         <Settings className="h-5 w-5 text-white" />
                     </div>
-                    <span className="font-semibold text-white text-lg">Admin</span>
+                    <span className="font-semibold text-gray-900 text-lg">Admin</span>
                 </div>
 
                 {/* Navigation */}
@@ -76,8 +71,8 @@ export default function AdminLayout({
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all",
                                             isActive
-                                                ? "bg-purple-600/20 text-purple-400"
-                                                : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-200"
+                                                ? "bg-blue-50 text-blue-600"
+                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
@@ -89,47 +84,36 @@ export default function AdminLayout({
                     </ul>
                 </nav>
 
-                {/* Employee timesheet link */}
-                <div className="absolute bottom-20 left-0 right-0 px-3">
-                    <Link
-                        href="/timesheet"
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-all"
-                    >
-                        <Clock className="h-5 w-5" />
-                        My Timesheet
-                    </Link>
-                </div>
-
                 {/* User section */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50">
+                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-slate-700/50 transition-all">
+                            <button className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 transition-all">
                                 <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600 text-white text-sm">
+                                    <AvatarFallback className="bg-blue-600 text-white text-sm">
                                         {getUserInitials()}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 text-left">
-                                    <p className="text-sm font-medium text-white truncate">
+                                    <p className="text-sm font-medium text-gray-900 truncate">
                                         {session?.user?.name || "Admin"}
                                     </p>
-                                    <p className="text-xs text-slate-500 truncate">
+                                    <p className="text-xs text-gray-500 truncate">
                                         {session?.user?.email}
                                     </p>
                                 </div>
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
-                            className="w-56 bg-slate-800 border-slate-700"
+                            className="w-56 bg-white border-gray-200"
                             align="end"
                         >
-                            <DropdownMenuLabel className="text-slate-200">
+                            <DropdownMenuLabel className="text-gray-900">
                                 Admin Account
                             </DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-slate-700" />
+                            <DropdownMenuSeparator className="bg-gray-100" />
                             <DropdownMenuItem
-                                className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer"
+                                className="text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer"
                                 onClick={() => signOut({ callbackUrl: "/login" })}
                             >
                                 <LogOut className="mr-2 h-4 w-4" />
@@ -141,7 +125,7 @@ export default function AdminLayout({
             </aside>
 
             {/* Main content */}
-            <main className="ml-64">{children}</main>
+            <main className="ml-64 bg-gray-50 min-h-screen">{children}</main>
         </div>
     );
 }
